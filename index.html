@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bản đồ Che Long Phú</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1a5276;
+            --primary-light: #2980b9;
+            --accent: #e67e22;
+            --bg-panel: #fafbfc;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --border: #e0e4e8;
+            --shadow: 0 2px 16px rgba(0,0,0,0.12);
+            --radius: 10px;
+        }
+
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background: #f0f2f5;
+            color: var(--text);
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, #1a6e5e 100%);
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-logo {
+            width: 36px;
+            height: 36px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .header h1 {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .header-subtitle {
+            font-size: 11px;
+            opacity: 0.75;
+            font-weight: 300;
+            margin-top: 1px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-header {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-header:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        /* ===== MAP CONTAINER ===== */
+        .map-wrapper {
+            display: flex;
+            height: calc(100vh - 56px);
+            position: relative;
+        }
+
+        #map {
+            flex: 1;
+            z-index: 1;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 300px;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            z-index: 500;
+            transition: transform 0.3s ease;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.06);
+        }
+
+        .sidebar-section {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-section:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-light);
+            margin-bottom: 12px;
+        }
+
+        /* Layer controls */
+        .layer-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+            margin-bottom: 4px;
+        }
+
+        .layer-item:hover {
+            background: #edf2f7;
+        }
+
+        .layer-checkbox {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .layer-checkbox.checked {
+            border-color: var(--primary-light);
+            background: var(--primary-light);
+        }
+
+        .layer-checkbox.checked::after {
+            content: '✓';
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .layer-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .layer-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .layer-name {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .layer-desc {
+            font-size: 11px;
+            color: var(--text-light);
+            margin-top: 1px;
+        }
+
+        /* Base map selector */
+        .basemap-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+            margin-bottom: 4px;
+        }
+
+        .basemap-option:hover {
+            background: #edf2f7;
+        }
+
+        .basemap-radio {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .basemap-radio.selected {
+            border-color: var(--primary-light);
+        }
+
+        .basemap-radio.selected::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary-light);
+        }
+
+        .basemap-name {
+            font-size: 13px;
+            font-weight: 400;
+        }
+
+        /* Info box */
+        .info-box {
+            background: #f7f9fb;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+            line-height: 1.6;
+            color: var(--text-light);
+        }
+
+        .info-box strong {
+            color: var(--text);
+        }
+
+        /* ===== SIDEBAR TOGGLE (mobile) ===== */
+        .sidebar-toggle {
+            display: none;
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            z-index: 600;
+            width: 40px;
+            height: 40px;
+            background: white;
+            border: none;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            font-size: 18px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ===== COORDINATE DISPLAY ===== */
+        .coord-display {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 500;
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(8px);
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: var(--text-light);
+            box-shadow: 0 1px 6px rgba(0,0,0,0.1);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ===== SCALE INFO ===== */
+        .leaflet-control-scale-line {
+            border-color: var(--primary) !important;
+            font-family: 'Be Vietnam Pro', sans-serif !important;
+            font-size: 10px !important;
+        }
+
+        /* ===== POPUP STYLE ===== */
+        .leaflet-popup-content-wrapper {
+            border-radius: 10px !important;
+            font-family: 'Be Vietnam Pro', sans-serif !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+        }
+
+        .leaflet-popup-content {
+            margin: 12px 16px !important;
+            font-size: 13px !important;
+            line-height: 1.6 !important;
+        }
+
+        .popup-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+
+        .popup-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+        }
+
+        .popup-label {
+            color: var(--text-light);
+            font-size: 12px;
+        }
+
+        .popup-value {
+            font-weight: 500;
+            font-size: 12px;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 14px;
+            }
+
+            .header-subtitle {
+                display: none;
+            }
+
+            .header-right {
+                display: none;
+            }
+
+            .sidebar {
+                position: absolute;
+                left: 0;
+                top: 0;
+                height: 100%;
+                transform: translateX(-100%);
+                box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .sidebar-toggle {
+                display: flex;
+            }
+
+            .coord-display {
+                bottom: 16px;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="header-left">
+        <div class="header-logo">🗺️</div>
+        <div>
+            <h1>Bản đồ Che Long Phú</h1>
+            <div class="header-subtitle">Hệ thống bản đồ trực tuyến</div>
+        </div>
+    </div>
+    <div class="header-right">
+        <button class="btn-header" onclick="zoomToAll()">⊞ Toàn cảnh</button>
+        <button class="btn-header" onclick="toggleFullscreen()">⛶ Toàn màn hình</button>
+    </div>
+</div>
+
+<!-- MAP + SIDEBAR -->
+<div class="map-wrapper">
+
+    <!-- Sidebar toggle for mobile -->
+    <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+
+        <!-- Base map -->
+        <div class="sidebar-section">
+            <div class="section-title">Bản đồ nền</div>
+            <div class="basemap-option" onclick="switchBasemap('osm')">
+                <div class="basemap-radio selected" id="radio-osm"></div>
+                <span class="basemap-name">OpenStreetMap</span>
+            </div>
+            <div class="basemap-option" onclick="switchBasemap('satellite')">
+                <div class="basemap-radio" id="radio-satellite"></div>
+                <span class="basemap-name">Ảnh vệ tinh</span>
+            </div>
+            <div class="basemap-option" onclick="switchBasemap('topo')">
+                <div class="basemap-radio" id="radio-topo"></div>
+                <span class="basemap-name">Địa hình</span>
+            </div>
+        </div>
+
+        <!-- Overlay layers -->
+        <div class="sidebar-section">
+            <div class="section-title">Lớp bản đồ</div>
+            <div id="layer-list">
+                <!-- Layers will be added by JS -->
+            </div>
+        </div>
+
+        <!-- Info -->
+        <div class="sidebar-section">
+            <div class="section-title">Thông tin</div>
+            <div class="info-box">
+                <strong>Hướng dẫn:</strong><br>
+                • Bật/tắt các lớp bản đồ ở trên<br>
+                • Click vào đối tượng để xem thuộc tính<br>
+                • Dùng chuột hoặc ngón tay để kéo, zoom<br><br>
+                <strong>Dữ liệu:</strong> Đang hiển thị dữ liệu mẫu (demo). Thay thế bằng file GeoJSON thực tế để sử dụng.
+            </div>
+        </div>
+    </div>
+
+    <!-- MAP -->
+    <div id="map"></div>
+
+    <!-- Coordinate display -->
+    <div class="coord-display" id="coord-display">
+        Di chuyển chuột trên bản đồ để xem tọa độ
+    </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// ============================================================
+// CẤU HÌNH - BẠN CHỈNH SỬA Ở ĐÂY
+// ============================================================
+
+// Tọa độ trung tâm mặc định (Hà Nội)
+const DEFAULT_CENTER = [21.03, 105.84];
+const DEFAULT_ZOOM = 14;
+
+// ============================================================
+// DỮ LIỆU MẪU (DEMO) - SAU NÀY THAY BẰNG FILE GEOJSON THỰC TẾ
+// ============================================================
+
+// Lớp 1: Ranh giới khu vực (polygon)
+const ranhGioiData = {
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "ten": "Khu vực A",
+                "dien_tich": "12.5 ha",
+                "muc_dich": "Đất ở đô thị"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [105.835, 21.033],
+                    [105.842, 21.033],
+                    [105.842, 21.028],
+                    [105.835, 21.028],
+                    [105.835, 21.033]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "ten": "Khu vực B",
+                "dien_tich": "8.3 ha",
+                "muc_dich": "Đất thương mại dịch vụ"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [105.842, 21.033],
+                    [105.850, 21.033],
+                    [105.850, 21.028],
+                    [105.842, 21.028],
+                    [105.842, 21.033]
+                ]]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "ten": "Khu vực C",
+                "dien_tich": "15.1 ha",
+                "muc_dich": "Đất cây xanh"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [105.835, 21.028],
+                    [105.850, 21.028],
+                    [105.850, 21.023],
+                    [105.835, 21.023],
+                    [105.835, 21.028]
+                ]]
+            }
+        }
+    ]
+};
+
+// Lớp 2: Đường giao thông (line)
+const duongGTData = {
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": { "ten": "Đường chính A", "loai": "Đường chính", "rong": "30m" },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [105.833, 21.030],
+                    [105.840, 21.030],
+                    [105.847, 21.031],
+                    [105.852, 21.030]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": { "ten": "Đường nội bộ B", "loai": "Đường nội bộ", "rong": "12m" },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [105.838, 21.034],
+                    [105.838, 21.028],
+                    [105.838, 21.022]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": { "ten": "Đường nội bộ C", "loai": "Đường nội bộ", "rong": "12m" },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [105.845, 21.034],
+                    [105.845, 21.028],
+                    [105.845, 21.022]
+                ]
+            }
+        }
+    ]
+};
+
+// Lớp 3: Điểm công trình (point)
+const congTrinhData = {
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": { "ten": "Trường học", "loai": "Giáo dục", "ghi_chu": "Trường tiểu học" },
+            "geometry": { "type": "Point", "coordinates": [105.838, 21.031] }
+        },
+        {
+            "type": "Feature",
+            "properties": { "ten": "Chợ", "loai": "Thương mại", "ghi_chu": "Chợ trung tâm" },
+            "geometry": { "type": "Point", "coordinates": [105.846, 21.031] }
+        },
+        {
+            "type": "Feature",
+            "properties": { "ten": "Trạm y tế", "loai": "Y tế", "ghi_chu": "Phòng khám đa khoa" },
+            "geometry": { "type": "Point", "coordinates": [105.842, 21.025] }
+        },
+        {
+            "type": "Feature",
+            "properties": { "ten": "Công viên", "loai": "Cây xanh", "ghi_chu": "Công viên trung tâm" },
+            "geometry": { "type": "Point", "coordinates": [105.842, 21.026] }
+        }
+    ]
+};
+
+// ============================================================
+// CẤU HÌNH CÁC LỚP BẢN ĐỒ
+// ============================================================
+// Để thêm lớp mới: thêm 1 object vào mảng LAYERS
+// - name: tên hiển thị
+// - color: màu
+// - data: dữ liệu GeoJSON (inline hoặc từ file)
+// - type: "polygon", "line", "point"
+// - visible: true/false (bật mặc định hay không)
+
+const LAYERS = [
+    {
+        id: "ranh-gioi",
+        name: "Ranh giới khu vực",
+        desc: "Polygon — ranh quy hoạch",
+        color: "#2ecc71",
+        fillOpacity: 0.2,
+        data: ranhGioiData,
+        type: "polygon",
+        visible: true
+    },
+    {
+        id: "duong-gt",
+        name: "Đường giao thông",
+        desc: "Line — hệ thống đường",
+        color: "#e74c3c",
+        data: duongGTData,
+        type: "line",
+        visible: true
+    },
+    {
+        id: "cong-trinh",
+        name: "Công trình",
+        desc: "Point — điểm công trình",
+        color: "#3498db",
+        data: congTrinhData,
+        type: "point",
+        visible: true
+    }
+];
+
+// ============================================================
+// KHỞI TẠO BẢN ĐỒ
+// ============================================================
+
+const map = L.map('map', {
+    center: DEFAULT_CENTER,
+    zoom: DEFAULT_ZOOM,
+    zoomControl: false
+});
+
+// Zoom control ở góc phải
+L.control.zoom({ position: 'topright' }).addTo(map);
+
+// Scale bar
+L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
+
+// ============================================================
+// BẢN ĐỒ NỀN
+// ============================================================
+
+const basemaps = {
+    osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap',
+        maxZoom: 19
+    }),
+    satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '© Esri',
+        maxZoom: 19
+    }),
+    topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenTopoMap',
+        maxZoom: 17
+    })
+};
+
+// Mặc định dùng OSM
+basemaps.osm.addTo(map);
+let currentBasemap = 'osm';
+
+function switchBasemap(name) {
+    map.removeLayer(basemaps[currentBasemap]);
+    basemaps[name].addTo(map);
+    currentBasemap = name;
+
+    // Update radio buttons
+    document.querySelectorAll('.basemap-radio').forEach(r => r.classList.remove('selected'));
+    document.getElementById('radio-' + name).classList.add('selected');
+}
+
+// ============================================================
+// TẠO CÁC LỚP DỮ LIỆU
+// ============================================================
+
+const layerObjects = {};
+
+function createPopup(properties) {
+    let html = '';
+    if (properties.ten) {
+        html += `<div class="popup-title">${properties.ten}</div>`;
+    }
+    for (const [key, value] of Object.entries(properties)) {
+        if (key === 'ten') continue;
+        const label = key.replace(/_/g, ' ');
+        html += `<div class="popup-row">
+            <span class="popup-label">${label}</span>
+            <span class="popup-value">${value}</span>
+        </div>`;
+    }
+    return html;
+}
+
+LAYERS.forEach(layerConfig => {
+    let leafletLayer;
+
+    if (layerConfig.type === 'polygon') {
+        leafletLayer = L.geoJSON(layerConfig.data, {
+            style: {
+                color: layerConfig.color,
+                weight: 2,
+                fillColor: layerConfig.color,
+                fillOpacity: layerConfig.fillOpacity || 0.2
+            },
+            onEachFeature: (feature, layer) => {
+                if (feature.properties) {
+                    layer.bindPopup(createPopup(feature.properties));
+                }
+            }
+        });
+    } else if (layerConfig.type === 'line') {
+        leafletLayer = L.geoJSON(layerConfig.data, {
+            style: {
+                color: layerConfig.color,
+                weight: 3,
+                opacity: 0.8
+            },
+            onEachFeature: (feature, layer) => {
+                if (feature.properties) {
+                    layer.bindPopup(createPopup(feature.properties));
+                }
+            }
+        });
+    } else if (layerConfig.type === 'point') {
+        leafletLayer = L.geoJSON(layerConfig.data, {
+            pointToLayer: (feature, latlng) => {
+                return L.circleMarker(latlng, {
+                    radius: 7,
+                    fillColor: layerConfig.color,
+                    color: '#fff',
+                    weight: 2,
+                    fillOpacity: 0.9
+                });
+            },
+            onEachFeature: (feature, layer) => {
+                if (feature.properties) {
+                    layer.bindPopup(createPopup(feature.properties));
+                }
+            }
+        });
+    }
+
+    layerObjects[layerConfig.id] = {
+        layer: leafletLayer,
+        config: layerConfig,
+        visible: layerConfig.visible
+    };
+
+    if (layerConfig.visible) {
+        leafletLayer.addTo(map);
+    }
+});
+
+// ============================================================
+// LAYER LIST UI
+// ============================================================
+
+const layerListEl = document.getElementById('layer-list');
+
+LAYERS.forEach(layerConfig => {
+    const item = document.createElement('div');
+    item.className = 'layer-item';
+    item.innerHTML = `
+        <div class="layer-checkbox ${layerConfig.visible ? 'checked' : ''}" id="cb-${layerConfig.id}"></div>
+        <div class="layer-color" style="background:${layerConfig.color}"></div>
+        <div class="layer-info">
+            <div class="layer-name">${layerConfig.name}</div>
+            <div class="layer-desc">${layerConfig.desc}</div>
+        </div>
+    `;
+
+    item.addEventListener('click', () => {
+        const obj = layerObjects[layerConfig.id];
+        const cb = document.getElementById('cb-' + layerConfig.id);
+
+        if (obj.visible) {
+            map.removeLayer(obj.layer);
+            obj.visible = false;
+            cb.classList.remove('checked');
+        } else {
+            obj.layer.addTo(map);
+            obj.visible = true;
+            cb.classList.add('checked');
+        }
+    });
+
+    layerListEl.appendChild(item);
+});
+
+// ============================================================
+// TỌA ĐỘ CHUỘT
+// ============================================================
+
+map.on('mousemove', (e) => {
+    document.getElementById('coord-display').textContent =
+        `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+});
+
+// ============================================================
+// CÁC NÚT CHỨC NĂNG
+// ============================================================
+
+function zoomToAll() {
+    const allBounds = [];
+    Object.values(layerObjects).forEach(obj => {
+        if (obj.visible) {
+            allBounds.push(obj.layer.getBounds());
+        }
+    });
+    if (allBounds.length > 0) {
+        let combined = allBounds[0];
+        allBounds.slice(1).forEach(b => combined.extend(b));
+        map.fitBounds(combined, { padding: [30, 30] });
+    }
+}
+
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+}
+
+// Zoom về dữ liệu khi load
+setTimeout(zoomToAll, 500);
+
+// ============================================================
+// TẢI GEOJSON TỪ FILE (dùng khi bạn có file thực tế)
+// ============================================================
+// Hướng dẫn: Khi bạn đã có file GeoJSON thực tế,
+// đặt file vào cùng thư mục với index.html, ví dụ: data/ranh-gioi.geojson
+// Rồi thay dữ liệu inline ở trên bằng cách fetch:
+//
+// async function loadGeoJSON(url) {
+//     const response = await fetch(url);
+//     return await response.json();
+// }
+//
+// Ví dụ:
+// loadGeoJSON('data/ranh-gioi.geojson').then(data => {
+//     L.geoJSON(data, { ... }).addTo(map);
+// });
+//
+// ============================================================
+
+</script>
+
+</body>
+</html>
